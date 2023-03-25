@@ -1,0 +1,21 @@
+{
+  "config": {
+    "platform": {
+      "php": "8.2"
+    },
+    "vendor-dir": "vendor/",
+    "optimize-autoloader": true
+  },
+  "autoload": {
+    "classmap": [
+      "public_html/src"
+    ]
+  },
+  "require": {
+    "monolog/monolog": "^2.8",
+    "php-webdriver/webdriver": "^1.14"
+  },
+  "require-dev": {
+    "vimeo/psalm": "^4.29"
+  }
+}
