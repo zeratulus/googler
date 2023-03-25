@@ -8,7 +8,7 @@
   },
   "autoload": {
     "classmap": [
-      "public_html/src"
+      "app/src"
     ]
   },
   "require": {

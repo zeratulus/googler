@@ -1,8 +1,8 @@
 <?php
 
-require_once 'constans.php';
+require_once 'constants.php';
+require_once './../vendor/autoload.php';
 require_once 'src/Helpers/general.php';
-require_once 'vendor/autoload.php';
 
 if (isCommandLineInterface()) {
     (new Cli\CliCommandBus)->init();

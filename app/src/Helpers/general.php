@@ -1,5 +1,10 @@
 <?php
 
+function nowMySQLTimestamp(): string
+{
+    return date('Y-m-d H:i:s');
+}
+
 function isFrameworkDebug(): bool
 {
     return defined('DEV') && constant('DEV');
