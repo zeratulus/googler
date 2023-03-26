@@ -1,3 +1,4 @@
 composer.lock
 dev
 vendor
+app/uploads

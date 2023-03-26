@@ -2,11 +2,10 @@
 
 namespace CliCommands;
 
-use Facebook\WebDriver\Exception\Internal\UnexpectedResponseException;
+use Facebook\WebDriver\Exception\ElementNotInteractableException;
 use Facebook\WebDriver\Remote\RemoteWebDriver;
 use Facebook\WebDriver\Remote\DesiredCapabilities;
 use Facebook\WebDriver\WebDriverBy;
-use SebastianBergmann\Diff\Exception;
 
 /**
  * Class GetImages
@@ -61,19 +60,20 @@ class GetImages extends \Cli\CliCommand
                 $btn_more_results = $driver->findElement(WebDriverBy::cssSelector('div input[type=button]'));
                 if (in_array($btn_more_results->getAttribute('value'), $this->preloadingButtonValues)) {
                     $btn_more_results->click(); //Exception  throw here
-                    sleep('2');
+                    sleep(3);
                 }
-            } catch (UnexpectedResponseException $e) {
-                $this->logToConsole($e->getMessage());
+            } catch (ElementNotInteractableException $e) {
+                $this->logToConsole('Error: ElementNotInteractableException -> ' . $e->getMessage());
             }
 
+            //Scroll to bottom
             if ($is_scroll) {
                 $this->logToConsole("Scroll");
                 $driver->executeScript('window.scrollTo(0,document.body.scrollHeight);');
-                sleep('2');
+                sleep(3);
             }
 
-            //<div class="OuJzKb Yu2Dnd"><div>Схоже, ви переглянули весь вміст</div></div>
+            // The end of loading
             $el_the_end = $driver->findElement(WebDriverBy::cssSelector('.OuJzKb.Yu2Dnd'));
             if (in_array($el_the_end->getText(), $this->preloadingEndValues)) {
                 $this->logToConsole("Preloading end.");
@@ -88,7 +88,7 @@ class GetImages extends \Cli\CliCommand
         $elements = $driver->findElements(WebDriverBy::cssSelector('img.rg_i'));
         foreach ($elements as $element) {
             $element->click();
-            sleep(3);
+            sleep(5);
 
             //Big image to save
             $target_image = $driver->findElement(WebDriverBy::cssSelector('img.n3VNCb.pT0Scc.KAlRDb'));
@@ -100,7 +100,7 @@ class GetImages extends \Cli\CliCommand
             mkdir($path, 0777, true);
 
             //uniqid = target filename + extension
-            file_put_contents($path . uniqid($query,  true) . '.' . $ext, $image);
+            file_put_contents($path . uniqid(str_replace(' ', '', $query),  true) . '.' . $ext, $image);
         }
 
         $driver->quit();

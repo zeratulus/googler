@@ -11,6 +11,9 @@ abstract class CliCommand extends CliBase implements CliCommandInterface
 
     public function init(): void
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '2G');
+
         $this->getArgs();
 
         if ($this->isValidRequiredArgs()) {
