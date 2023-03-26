@@ -2,6 +2,7 @@
 
 namespace CliCommands;
 
+use Facebook\WebDriver\Exception\ElementClickInterceptedException;
 use Facebook\WebDriver\Exception\ElementNotInteractableException;
 use Facebook\WebDriver\Remote\RemoteWebDriver;
 use Facebook\WebDriver\Remote\DesiredCapabilities;
@@ -36,7 +37,6 @@ class GetImages extends \Cli\CliCommand
         $this->queries = explode(',', $data);
     }
 
-    //TODO: Add log of events
     private function processQuery(string $query)
     {
         $this->logToConsole("processQuery($query)");
@@ -55,12 +55,12 @@ class GetImages extends \Cli\CliCommand
         $i=0;
         while ($loading) {
             $this->logToConsole("Preload all images iteration - $i");
-
             try {
                 $btn_more_results = $driver->findElement(WebDriverBy::cssSelector('div input[type=button]'));
                 if (in_array($btn_more_results->getAttribute('value'), $this->preloadingButtonValues)) {
                     $btn_more_results->click(); //Exception  throw here
                     sleep(3);
+                    $this->logToConsole("Button Load More -> clicked");
                 }
             } catch (ElementNotInteractableException $e) {
                 $this->logToConsole('Error: ElementNotInteractableException -> ' . $e->getMessage());
@@ -73,7 +73,7 @@ class GetImages extends \Cli\CliCommand
                 sleep(3);
             }
 
-            // The end of loading
+            //The end of loading
             $el_the_end = $driver->findElement(WebDriverBy::cssSelector('.OuJzKb.Yu2Dnd'));
             if (in_array($el_the_end->getText(), $this->preloadingEndValues)) {
                 $this->logToConsole("Preloading end.");
@@ -87,20 +87,27 @@ class GetImages extends \Cli\CliCommand
         //Parse thumbnails > single element selector img.rg_i
         $elements = $driver->findElements(WebDriverBy::cssSelector('img.rg_i'));
         foreach ($elements as $element) {
-            $element->click();
-            sleep(5);
+            $parent = $element->findElement(WebDriverBy::xpath("./../.."));
+            $parent->click();
+            sleep(2);
 
             //Big image to save
-            $target_image = $driver->findElement(WebDriverBy::cssSelector('img.n3VNCb.pT0Scc.KAlRDb'));
-            $image_src = $target_image->getAttribute('src');
-            $image = file_get_contents($image_src);
-//            $filename = pathinfo($image_src, PATHINFO_FILENAME);
-            $ext = pathinfo($image_src, PATHINFO_EXTENSION);
-            $path = DIR_UPLOAD . $query . '/';
-            mkdir($path, 0777, true);
+            $target_images = $driver->findElement(WebDriverBy::cssSelector('c-wiz div div div div div a[role="link"] img:first-of-type'));
+            foreach ($target_images as $target_image)  {
+                $src = $target_image->getAttribute('src');
+                if (str_contains($src, 'http')) {
+                    $image_src = $target_image->getAttribute('src');
+                    $image = file_get_contents($image_src);
+//                    $filename = pathinfo($image_src, PATHINFO_FILENAME);
+                    $ext = pathinfo($image_src, PATHINFO_EXTENSION);
+                    $path = DIR_UPLOAD . $query . '/';
+                    mkdir($path, 0777, true);
 
-            //uniqid = target filename + extension
-            file_put_contents($path . uniqid(str_replace(' ', '', $query),  true) . '.' . $ext, $image);
+                    //uniqid = target filename + extension
+                    file_put_contents($path . uniqid(str_replace(' ', '', $query)) . '.' . $ext, $image);
+                    break;
+                }
+            }
         }
 
         $driver->quit();

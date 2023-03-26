@@ -50,5 +50,13 @@ class CliBase
                 var_dump($context);
             }
         }
+
+        $this->logToFile($msg);
     }
+
+    private function logToFile(string $msg)
+    {
+        file_put_contents(DIR_ROOT . '/log/' . date('Y-m-d') . '.log', nowMySQLTimestamp() . ": $msg\r", FILE_APPEND);
+    }
+
 }
