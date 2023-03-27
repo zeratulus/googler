@@ -59,7 +59,7 @@ class GetImages extends \Cli\CliCommand
                 $btn_more_results = $driver->findElement(WebDriverBy::cssSelector('div input[type=button]'));
                 if (in_array($btn_more_results->getAttribute('value'), $this->preloadingButtonValues)) {
                     $btn_more_results->click(); //Exception  throw here
-                    sleep(3);
+                    sleep(2);
                     $this->logToConsole("Button Load More -> clicked");
                 }
             } catch (ElementNotInteractableException $e) {
@@ -70,7 +70,7 @@ class GetImages extends \Cli\CliCommand
             if ($is_scroll) {
                 $this->logToConsole("Scroll");
                 $driver->executeScript('window.scrollTo(0,document.body.scrollHeight);');
-                sleep(3);
+                sleep(2);
             }
 
             //The end of loading
@@ -87,30 +87,57 @@ class GetImages extends \Cli\CliCommand
         //Parse thumbnails > single element selector img.rg_i
         $elements = $driver->findElements(WebDriverBy::cssSelector('img.rg_i'));
         foreach ($elements as $element) {
-            $parent = $element->findElement(WebDriverBy::xpath("./../.."));
-            $parent->click();
-            sleep(2);
+            $this->processElement($element, $driver);
+        }
+        $driver->quit();
+    }
 
-            //Big image to save
-            $target_images = $driver->findElement(WebDriverBy::cssSelector('c-wiz div div div div div a[role="link"] img:first-of-type'));
-            foreach ($target_images as $target_image)  {
-                $src = $target_image->getAttribute('src');
-                if (str_contains($src, 'http')) {
-                    $image_src = $target_image->getAttribute('src');
-                    $image = file_get_contents($image_src);
+    private function processElement($element, $driver)
+    {
+        $parent = $element->findElement(WebDriverBy::xpath("./../.."));
+        $parent->click();
+        sleep(2);
+
+        //Here is on Google Search 3  images: prev thumb, current (big image), next thumb
+        $target_images = $driver->findElements(WebDriverBy::cssSelector('c-wiz div div div div div a[role="link"] img'));
+        $this->logToConsole('Target Images');
+        $path = DIR_UPLOAD . $query . '/';
+        mkdir($path, 0777, true);
+        foreach ($target_images as $target_image)  {
+
+            $src = $target_image->getAttribute('src');
+
+            if (str_contains($src, 'http')) { //Try to download high quality image
+                $this->logToConsole('Process big image src -> ' . $src);
+                $image_src = $target_image->getAttribute('src');
+                $this->logToConsole('Try to download image -> ' . $image_src);
+                $image = file_get_contents($image_src);
 //                    $filename = pathinfo($image_src, PATHINFO_FILENAME);
-                    $ext = pathinfo($image_src, PATHINFO_EXTENSION);
-                    $path = DIR_UPLOAD . $query . '/';
-                    mkdir($path, 0777, true);
+                $ext = pathinfo($image_src, PATHINFO_EXTENSION);
 
-                    //uniqid = target filename + extension
-                    file_put_contents($path . uniqid(str_replace(' ', '', $query)) . '.' . $ext, $image);
-                    break;
+                $this->tryToSave($query, $path, $ext, $image, $image_src, 'xl-');
+            } else { //Downloading of small thumbnails
+                $this->logToConsole('Process small image');
+                $image = $target_image->getAttribute('src');
+                if (($pos = strpos($image, ';')) !==  false) {
+                    $type = substr($image, 0, $pos);
+                    $res = explode('/', $type);
+                    $ext = end($res);
+                    $this->tryToSave($query, $path, $ext, $image, $type, 'sm-');
                 }
             }
-        }
 
-        $driver->quit();
+        }
+    }
+
+    private function tryToSave(string $query, string $path, string $ext, $image, string $log_msg, string $size)
+    {
+        $filename = uniqid(str_replace(' ', '', $size . $query), true);
+        if (file_put_contents($path . $filename . '.' . $ext, $image)) {
+            $this->logToConsole('Downloaded -> ' . $log_msg);
+        } else {
+            $this->logToConsole('Download Failed -> ' . $log_msg);
+        }
     }
 
     public function execute(): void

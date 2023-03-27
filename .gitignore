@@ -3,3 +3,4 @@ composer.lock
 dev
 vendor
 app/uploads
+app/log
