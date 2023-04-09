@@ -2,8 +2,10 @@
 
 namespace CliCommands;
 
+use Exception;
 use Facebook\WebDriver\Exception\ElementClickInterceptedException;
 use Facebook\WebDriver\Exception\ElementNotInteractableException;
+use Facebook\WebDriver\Exception\NoSuchElementException;
 use Facebook\WebDriver\Remote\RemoteWebDriver;
 use Facebook\WebDriver\Remote\DesiredCapabilities;
 use Facebook\WebDriver\WebDriverBy;
@@ -74,11 +76,36 @@ class GetImages extends \Cli\CliCommand
             }
 
             //The end of loading
-            $el_the_end = $driver->findElement(WebDriverBy::cssSelector('.OuJzKb.Yu2Dnd'));
-            if (in_array($el_the_end->getText(), $this->preloadingEndValues)) {
-                $this->logToConsole("Preloading end.");
-                $loading = false;
-                $is_scroll = false;
+            $is_the_end = false;
+            try {
+                $el_the_end = $driver->findElement(WebDriverBy::cssSelector('.OuJzKb.Yu2Dnd'));
+                if (in_array($el_the_end->getText(), $this->preloadingEndValues)) {
+                    $this->logToConsole("Preloading end.");
+                    $loading = false;
+                    $is_scroll = false;
+                    $is_the_end = true;
+                }
+            } catch (ElementNotInteractableException $e) { //8 div span
+                $this->logToConsole("The end not found.");
+                $is_the_end = false;
+            }
+
+            if (!$is_the_end) {
+                try {
+                    $el_the_end = $driver->findElement(WebDriverBy::cssSelector('div.WYR1I span'));
+                    if (str_contains($el_the_end->getText(), "See more anyway")) {
+                        $this->logToConsole("Preloading end.");
+                        $loading = false;
+                        $is_scroll = false;
+                        $is_the_end = true;
+                    }
+                } catch (ElementNotInteractableException $e) {
+                    $this->logToConsole("The end not found.");
+                    $is_the_end = false;
+                } catch (NoSuchElementException $e) {
+                    $this->logToConsole("The end not found.");
+                    $is_the_end = false;
+                }
             }
 
             $i++;
@@ -87,12 +114,12 @@ class GetImages extends \Cli\CliCommand
         //Parse thumbnails > single element selector img.rg_i
         $elements = $driver->findElements(WebDriverBy::cssSelector('img.rg_i'));
         foreach ($elements as $element) {
-            $this->processElement($element, $driver);
+            $this->processElement($query, $element, $driver);
         }
         $driver->quit();
     }
 
-    private function processElement($element, $driver)
+    private function processElement($query, $element, $driver)
     {
         $parent = $element->findElement(WebDriverBy::xpath("./../.."));
         $parent->click();
